@@ -7,6 +7,7 @@ Geolocation samples:
 
 package edu.gonzaga.bloomsday;
 
+import android.graphics.Color;
 import android.location.Location;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -24,6 +25,8 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.maps.model.Polyline;
+import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.text.DateFormat;
 import java.util.Date;
@@ -35,7 +38,10 @@ public class MapsActivity extends FragmentActivity implements
     private GoogleMap mMap;
 
     private Location mLastLocation;
+
     private Location mCurrentLocation;
+    private Location mPriorLocation;
+
     private LocationRequest mLocationRequest;
     private String mLastUpdateTime;
     private GoogleApiClient mGoogleApiClient;
@@ -103,7 +109,21 @@ public class MapsActivity extends FragmentActivity implements
         mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
         mLatitudeTextView.setText(String.valueOf(mCurrentLocation.getLatitude()));
         mLongitudeTextView.setText(String.valueOf(mCurrentLocation.getLongitude()));
-//        mLastUpdateTimeTextView.setText(mLastUpdateTime);
+
+        //Draw polylines betwixt here and prior location
+        if (mPriorLocation == null) {
+            mPriorLocation = mLastLocation;
+        } else {
+            if (mPriorLocation != mLastLocation) {
+                LatLng prevLL = new LatLng(mPriorLocation.getLatitude(), mPriorLocation.getLongitude());
+                Polyline line = mMap.addPolyline(new PolylineOptions()
+                        .add(prevLL, here)
+                        .width(5)
+                        .color(Color.RED));
+                mPriorLocation = mLastLocation;
+            }
+        }
+
     }
 
 
