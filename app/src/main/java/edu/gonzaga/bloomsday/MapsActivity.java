@@ -22,6 +22,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -37,10 +38,9 @@ public class MapsActivity extends FragmentActivity implements
 
     private GoogleMap mMap;
 
-    private Location mLastLocation;
-
-    private Location mCurrentLocation;
-    private Location mPriorLocation;
+    private Location mLastLocation; //location when app launches
+    private Location mCurrentLocation; //most recent location; updated periodically
+    private Location mPriorLocation; //second most recent location; used for path-drawing
 
     private LocationRequest mLocationRequest;
     private String mLastUpdateTime;
@@ -48,6 +48,7 @@ public class MapsActivity extends FragmentActivity implements
 
     private TextView mLatitudeTextView;
     private TextView mLongitudeTextView;
+    private TextView mUpdateTimeTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,10 +57,12 @@ public class MapsActivity extends FragmentActivity implements
         //Get layout elements
         mLatitudeTextView = (TextView) findViewById(R.id.latitude);
         mLongitudeTextView = (TextView) findViewById(R.id.longitude);
+        mUpdateTimeTextView = (TextView) findViewById(R.id.updatetime);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+//        mMap = mapFragment.getMap();
         //Create Google API client for getting location
         buildGoogleApiClient();
         //Create location request for polling
@@ -76,8 +79,8 @@ public class MapsActivity extends FragmentActivity implements
 
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(10000); //poll new location every 10s
-        mLocationRequest.setFastestInterval(5000); //set max update frequency at every 5s
+        mLocationRequest.setInterval(2000); //poll new location every x ms
+        mLocationRequest.setFastestInterval(1000); //set max update frequency at every x ms
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
     }
 
@@ -103,27 +106,34 @@ public class MapsActivity extends FragmentActivity implements
         System.out.println(String.valueOf(mCurrentLocation.getLatitude()));
         System.out.println(String.valueOf(mCurrentLocation.getLongitude()));
         System.out.println(mLastUpdateTime);
-
-        LatLng here = new LatLng(mLastLocation.getLatitude(), mLastLocation.getLongitude());
-        mMap.addMarker(new MarkerOptions().position(here).title("You are here!"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
+        //Update text
         mLatitudeTextView.setText(String.valueOf(mCurrentLocation.getLatitude()));
         mLongitudeTextView.setText(String.valueOf(mCurrentLocation.getLongitude()));
+        mUpdateTimeTextView.setText(String.valueOf(mLastUpdateTime));
+
+        //Update map
+        LatLng here = new LatLng(mCurrentLocation.getLatitude(), mCurrentLocation.getLongitude());
+        mMap.addMarker(new MarkerOptions()
+                        .position(here)
+                        .title("You are here!")
+                        .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+        );
+        if (mPriorLocation == null) mMap.moveCamera(CameraUpdateFactory.newLatLng(here));
 
         //Draw polylines betwixt here and prior location
         if (mPriorLocation == null) {
-            mPriorLocation = mLastLocation;
+            mPriorLocation = mCurrentLocation;
         } else {
-            if (mPriorLocation != mLastLocation) {
+            if (mPriorLocation != mCurrentLocation) {
                 LatLng prevLL = new LatLng(mPriorLocation.getLatitude(), mPriorLocation.getLongitude());
                 Polyline line = mMap.addPolyline(new PolylineOptions()
                         .add(prevLL, here)
                         .width(5)
                         .color(Color.RED));
+                line.setVisible(true);
                 mPriorLocation = mLastLocation;
             }
         }
-
     }
 
 
@@ -159,27 +169,6 @@ public class MapsActivity extends FragmentActivity implements
         if (mRequestingLocationUpdates) {
             startLocationUpdates();
         }
-
-        //Testing: Launch a new thread for printing out current loc
-        new Thread(new Runnable() {
-            public void run() {
-                while (true) {
-                    System.out.println("Printing LOC");
-                    if (mCurrentLocation != null) {
-                        System.out.println(String.valueOf(mCurrentLocation.getLatitude()));
-                        System.out.println(String.valueOf(mCurrentLocation.getLongitude()));
-                    }
-                    try {
-                        //Go to sleep for 5 seconds
-                        Thread.sleep(5000);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-
-                }
-            }
-        }).start();
-
     }
 
     @Override
@@ -202,14 +191,15 @@ public class MapsActivity extends FragmentActivity implements
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         // Default marker
-        LatLng def = new LatLng(0, 0);
-        mMap.addMarker(new MarkerOptions().position(def).title("Default"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(def));
+//        LatLng def = new LatLng(0, 0);
+//        mMap.addMarker(new MarkerOptions().position(def).title("Default"));
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(def));
 
         //Zoom in
         //TODO: Set max/min zooms for course
+        //TODO: Get zoom working (doesn't seem to zoom closer than 15)
         //15 is roughly a person in the neighborhood; higher -> closer
-        CameraUpdate defaultZoom = CameraUpdateFactory.zoomTo(15);
+        CameraUpdate defaultZoom = CameraUpdateFactory.zoomTo(16);
         mMap.animateCamera(defaultZoom);
     }
 }
