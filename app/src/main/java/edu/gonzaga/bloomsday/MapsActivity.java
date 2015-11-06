@@ -77,6 +77,26 @@ public class MapsActivity extends FragmentActivity implements
                 .build();
     }
 
+    /**
+     * Asks the user to download Google Play services if not yet installed
+     * Asynchronous method used to initialize map
+     */
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        // Default marker
+//        LatLng def = new LatLng(0, 0);
+//        mMap.addMarker(new MarkerOptions().position(def).title("Default"));
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(def));
+
+        //Zoom in
+        //TODO: Set max/min zooms for course
+        //TODO: Get zoom working (doesn't seem to zoom closer than 15)
+        //15 is roughly a person in the neighborhood; higher -> closer
+        CameraUpdate defaultZoom = CameraUpdateFactory.zoomTo(16);
+        mMap.animateCamera(defaultZoom);
+    }
+
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
         mLocationRequest.setInterval(2000); //poll new location every x ms
@@ -97,10 +117,9 @@ public class MapsActivity extends FragmentActivity implements
         updateUI();
     }
 
-    // TODO: Clean up
     // TODO: Add uncertainty
     // TODO: zoom in/out buttons
-    // TODO: interpolate between positions
+    // TODO: clamp positions to road
     private void updateUI() {
         System.out.println("Updating UI");
         System.out.println(String.valueOf(mCurrentLocation.getLatitude()));
@@ -131,7 +150,7 @@ public class MapsActivity extends FragmentActivity implements
                         .width(5)
                         .color(Color.RED));
                 line.setVisible(true);
-                mPriorLocation = mLastLocation;
+                mPriorLocation = mCurrentLocation;
             }
         }
     }
@@ -183,23 +202,4 @@ public class MapsActivity extends FragmentActivity implements
         System.out.println("Connection failed");
     }
 
-
-    /**
-     * Asks the user to download Google Play services if not yet installed
-     */
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
-        // Default marker
-//        LatLng def = new LatLng(0, 0);
-//        mMap.addMarker(new MarkerOptions().position(def).title("Default"));
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(def));
-
-        //Zoom in
-        //TODO: Set max/min zooms for course
-        //TODO: Get zoom working (doesn't seem to zoom closer than 15)
-        //15 is roughly a person in the neighborhood; higher -> closer
-        CameraUpdate defaultZoom = CameraUpdateFactory.zoomTo(16);
-        mMap.animateCamera(defaultZoom);
-    }
 }
